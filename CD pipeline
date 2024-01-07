@@ -1,0 +1,15 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage ("docker deploy") {
+            steps {
+                script {
+                     withDockerRegistry(credentialsId: 'Docker', url: 'Docker'){
+                         sh "docker run -d --name Ekart -p 80:80 omkarbasu/ekart"
+                     }
+                    }
+                }
+            }
+        }
+}

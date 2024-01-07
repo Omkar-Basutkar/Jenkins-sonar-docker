@@ -1,0 +1,64 @@
+pipeline{
+    agent any
+    
+    tools {
+        jdk "jdk11"
+        maven "maven3"
+    }
+    
+    environment {
+        SCANNER_HOME= tool 'sonar-scanner'
+    }
+    
+    stages {
+        stage(GITHUB){
+            steps{
+                 git branch: 'master', url: 'Repository Url'
+            }
+        }
+        stage("clean compile") {
+            steps {
+                sh "mvn clean compile"
+            }
+        }
+        stage ("Clean Compile") {
+            steps {
+                 sh "mvn clean compile"
+            }
+        }
+        stage ("sonar scaner") {
+            steps{
+                 sh ''' ${SCANNER_HOME}/bin/bash/sonar-scanner -Dsonar.url={Sonar Scanner IP}:9000/ -Dsonar.login=squ_45162ef9ff4538ebe7e965c4d1d193c1a7757316 -Dsonar.projectName=Ekart -DskipTests:true \
+                -Dsonar.java.binaries=. \
+                -Dsonar.projectKey=Ekart '''
+            }
+        }
+        stage ("owasp") {
+            steps {
+                dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DP'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        stage ("build application") {
+            steps {
+                 sh "mvn clean install"
+            }
+        }
+        stage ("build & push") {
+            steps {
+                scripts {
+                     withDockerRegistry(credentialsId: 'e9c21281-2264-4154-95e1-0a373c9cb4e9' , url: 'Docker'){
+                          sh "docker build -t ekart:latest"
+                          sh "docker tag ekart:latest omkarbasu/ekart"
+                          sh "docker push omkarbasu/ekart"
+                     }
+                }
+            }
+        }
+        stage("Trigger") {
+            steps {
+                build job: "CI_pipeline", wait: true
+            }
+        }
+    }
+}
